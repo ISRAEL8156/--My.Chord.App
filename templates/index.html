@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>Chord Studio Pro - Ultimate</title>
+    <style>
+        :root {
+            --bg: #0f172a; --card: #1e293b; --primary: #38bdf8; --secondary: #10b981; 
+            --accent: #f43f5e; --text-main: #f8fafc; --text-dim: #94a3b8; --border: #334155;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background-color: var(--bg); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: relative;}
+        
+        .header { background-color: var(--card); border-bottom: 2px solid var(--border); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: bold; color: var(--primary); }
+        .song-title { font-size: 18px; color: var(--text-dim); display: flex; align-items: center; gap: 15px;}
+        
+        /* כפתור הגדרות עגול */
+        .btn-settings-icon {
+            background-color: var(--border); color: var(--text-main); border: none; border-radius: 50%;
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-settings-icon:hover { background-color: var(--primary); color: var(--bg); transform: rotate(45deg); }
+
+        .toolbar { 
+            display: flex; flex-wrap: wrap; gap: 15px; padding: 15px 30px; background-color: var(--bg); align-items: flex-start;
+        }
+        
+        .card { 
+            background-color: var(--card); border: 1px solid var(--border); border-radius: 8px; 
+            padding: 12px 15px; display: flex; flex-direction: column; gap: 10px; justify-content: center;
+            min-width: max-content; position: relative;
+        }
+        .card-title { font-size: 12px; color: var(--text-dim); text-transform: uppercase; font-weight: bold; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center;}
+        .orig-key-badge { background-color: var(--border); color: var(--primary); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-right: 5px; }
+
+        button { background-color: var(--border); color: var(--text-main); border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 13px; display: flex; align-items: center; gap: 5px; justify-content: center;}
+        button:hover { opacity: 0.8; }
+        button.primary { background-color: var(--primary); color: var(--bg); }
+        button.success { background-color: var(--secondary); color: white; }
+        button.danger { background-color: var(--accent); color: white; }
+        button.warning { background-color: #f59e0b; color: white; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        select { background: var(--bg); color: var(--text-main); border: 1px solid var(--border); padding: 7px; border-radius: 4px; font-size: 14px; outline: none; min-width: 140px; font-weight: bold;}
+        
+        .controls-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap;}
+        .val-display { font-size: 18px; font-weight: bold; color: var(--text-main); min-width: 30px; text-align: center;}
+        
+        .workspace { flex: 1; display: flex; flex-direction: column; padding: 0 30px 20px 30px; gap: 20px; overflow: hidden; }
+        .canvas-container { flex: 1; background-color: #f8fafc; border-radius: 8px; padding: 30px; overflow-y: auto; scroll-behavior: smooth; border: 1px solid var(--border); }
+        
+        #chords-sheet { display: flex; flex-wrap: wrap; gap: 15px; direction: ltr; justify-content: flex-start; align-content: flex-start; }
+        
+        .chord-block {
+            position: relative; background-color: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px;
+            height: 90px; min-width: 80px; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; color: #1e293b; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden;
+        }
+        .chord-name { font-size: 26px; font-weight: bold; z-index: 2; position: relative;}
+        .chord-time { font-size: 12px; color: #64748b; font-weight: normal; margin-top: 5px; z-index: 2; position: relative;}
+        .chord-block.active-chord { background-color: #f0fdfa; color: #0f766e; border-color: #10b981; box-shadow: 0 8px 15px rgba(16, 185, 129, 0.2); }        
+        .playhead-line { position: absolute; bottom: 0; left: 0; height: 5px; background-color: var(--accent); display: none; z-index: 1; border-radius: 0 0 10px 10px; }
+        .chord-block.active-chord .playhead-line { display: block; }
+        
+        .edit-input { width: 70px; text-align: center; font-size: 22px; font-weight: bold; border: 1px dashed #38bdf8; background: white; border-radius: 4px; color: #1e293b; outline: none;}
+
+        .piano-wrapper { height: 100px; display: flex; justify-content: center; }
+        .piano { display: flex; position: relative; height: 100%; width: 700px; }
+        .key-white { width: 50px; height: 100%; background: white; border: 1px solid #ccc; border-radius: 0 0 5px 5px; position: absolute; z-index: 1; }
+        .key-black { width: 30px; height: 60%; background: #111; position: absolute; z-index: 2; border-radius: 0 0 4px 4px; }
+        .key-white.active { background: #a5d6a7; box-shadow: inset 0 0 10px #388e3c; }
+        .key-black.active { background: #388e3c; }
+        
+        /* Modal הגדרות */
+        #settings-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.8);
+            z-index: 200; display: none; justify-content: center; align-items: center;
+        }
+        .settings-content {
+            background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+            padding: 30px; width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .settings-content h3 { color: var(--primary); margin-bottom: 20px; text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+        .setting-group { margin-bottom: 15px; }
+        .setting-group label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 5px; font-weight: bold;}
+        .setting-group input[type="range"], .setting-group select { width: 100%; }
+        .range-val { font-size: 12px; color: var(--primary); float: left; }
+        
+        #overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(15,23,42,0.9); z-index: 100; display: flex; justify-content: center; align-items: center; flex-direction: column; color: white; display: none; }
+        .spinner { border: 6px solid var(--border); border-top: 6px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="overlay"><div class="spinner"></div><h2 id="loading-text">טוען נתונים...</h2></div>
+
+    <div id="settings-modal">
+        <div class="settings-content">
+            <h3>⚙️ הגדרות מנוע מתקדמות</h3>
+            
+            <div class="setting-group">
+                <label>רזולוציית ניתוח (Hop Length)</label>
+                <select id="set-hop">
+                    <option value="256">256 (מהיר וקופצני - למוזיקה מורכבת)</option>
+                    <option value="512" selected>512 (מאוזן - מומלץ)</option>
+                    <option value="1024">1024 (איטי ויציב)</option>
+                </select>
+            </div>
+            
+            <div class="setting-group">
+                <label>יציבות אקורדים <span class="range-val" id="val-stay">0.96</span></label>
+                <input type="range" id="set-stay" min="0.80" max="0.99" step="0.01" value="0.96" oninput="document.getElementById('val-stay').innerText=this.value">
+                <div style="font-size:11px; color:#64748b; margin-top:2px;">ערך גבוה מונע קפיצות ואפקט "פינג-פונג"</div>
+            </div>
+
+            <div class="setting-group">
+                <label>אורך אקורד מינימלי (שניות) <span class="range-val" id="val-dur">0.4s</span></label>
+                <input type="range" id="set-dur" min="0.1" max="1.0" step="0.1" value="0.4" oninput="document.getElementById('val-dur').innerText=this.value+'s'">
+                <div style="font-size:11px; color:#64748b; margin-top:2px;">מסנן קישוטים מהירים מהדף</div>
+            </div>
+
+            <div class="setting-group">
+                <label>רגישות לאקורדים מורכבים <span class="range-val" id="val-comp">0.6</span></label>
+                <input type="range" id="set-comp" min="0.1" max="1.0" step="0.1" value="0.6" oninput="document.getElementById('val-comp').innerText=this.value">
+                <div style="font-size:11px; color:#64748b; margin-top:2px;">ערך נמוך מסנן אקורדי 7/מוקטנים שגויים</div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 25px;">
+                <button class="primary" style="flex: 1;" onclick="applySettings()">שמור ונתח מחדש</button>
+                <button class="danger" onclick="document.getElementById('settings-modal').style.display='none'">ביטול</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="logo">Chord Studio Pro 🎶</div>
+        <div class="song-title">
+            <span id="song-title">לא נטען שיר</span>
+            <button class="btn-settings-icon" onclick="document.getElementById('settings-modal').style.display='flex'" title="הגדרות מנוע">⚙️</button>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="card">
+            <div class="card-title">קובץ</div>
+            <div class="controls-row">
+                <input type="file" id="audio-upload" accept="audio/*" style="display: none;">
+                <button class="primary" onclick="document.getElementById('audio-upload').click()">📂 טען שיר</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">ייצוא</div>
+            <div class="controls-row">
+                <button class="success" onclick="exportMidi()" id="btn-midi" disabled>🎹 MIDI</button>
+                <button class="warning" onclick="exportPDF()" id="btn-pdf" disabled>📄 PDF</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">עריכה</div>
+            <div class="controls-row">
+                <button id="btn-edit" class="primary" onclick="toggleEdit()" disabled>✏️ תקן אקורדים</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">נגן</div>
+            <div class="controls-row">
+                <button class="success" id="btn-play" onclick="togglePlay()" disabled>▶ נגן</button>
+                <button onclick="stopPlay()" disabled id="btn-stop">⏪ עצור ומשוך</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">לופ</div>
+            <div class="controls-row">
+                <button onclick="setLoop('A')" disabled id="btn-loop-a">🚩 התחל</button>
+                <button onclick="setLoop('B')" disabled id="btn-loop-b">🏁 סיים</button>
+                <button class="danger" onclick="setLoop('clear')" disabled id="btn-loop-clear">❌ נקה</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">המרת סולם <span class="orig-key-badge" id="orig-key-badge">ממתין...</span></div>
+            <div class="controls-row">
+                <select id="key-select" disabled onchange="changeKey()">
+                    <option value="">-</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">קצב ומטרונום <span class="orig-key-badge" id="orig-bpm-badge" style="margin-right:auto; margin-left:0;">ממתין...</span></div>
+            <div class="controls-row">
+                <span class="val-display" id="bpm-display">-</span>
+                <input type="range" id="bpm-slider" min="0.5" max="1.5" step="0.05" value="1" disabled oninput="changeTempo()">
+                <label style="font-size: 14px; display: flex; align-items: center; gap: 5px; cursor: pointer; margin-right: 5px; font-weight: bold;">
+                    <input type="checkbox" id="metronome-toggle" disabled onchange="resetMetronome()">
+                    🔔
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="workspace">
+        <div class="canvas-container">
+            <div id="chords-sheet"></div>
+        </div>
+        <div class="piano-wrapper">
+            <div class="piano" id="piano-container"></div>
+        </div>
+    </div>
+
+    <audio id="audio-player"></audio>
+
+    <script>
+        const NOTES_SHARP = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const NOTES_FLAT = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'];
+        const FLAT_KEYS = [1, 3, 5, 8, 10];
+
+        let currentData = null;
+        let isPlaying = false;
+        let animationFrame;
+        let loopStart = null;
+        let loopEnd = null;
+        let isEditing = false;
+        
+        let originalKeyIdx = 0;
+        let isMinor = false;
+        let chordElements = []; 
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = new AudioContext();
+        
+        let lastMetronomeTickTime = -1;
+
+        const audioInput = document.getElementById('audio-upload');
+        const audioPlayer = document.getElementById('audio-player');
+        const chordsSheet = document.getElementById('chords-sheet');
+        const overlay = document.getElementById('overlay');
+        const overlayText = document.getElementById('loading-text');
+        
+        function buildPiano() {
+            const pianoContainer = document.getElementById('piano-container');
+            const whiteKeys = [0, 2, 4, 5, 7, 9, 11];
+            pianoContainer.innerHTML = '';
+            for (let octave = 0; octave < 2; octave++) {
+                for (let i = 0; i < 12; i++) {
+                    const isWhite = whiteKeys.includes(i);
+                    const el = document.createElement('div');
+                    el.className = isWhite ? 'key-white' : 'key-black';
+                    if (!isWhite) {
+                        const prevWhiteKeys = whiteKeys.filter(k => k < i).length;
+                        el.style.left = `calc(${prevWhiteKeys * 50}px + ${octave * 350}px - 15px)`;
+                    } else {
+                        el.style.left = `calc(${whiteKeys.indexOf(i) * 50}px + ${octave * 350}px)`;
+                    }
+                    pianoContainer.appendChild(el);
+                }
+            }
+        }
+        buildPiano();
+
+        function getNoteName(idx, preferFlats) {
+            idx = (idx % 12 + 12) % 12; 
+            return preferFlats ? NOTES_FLAT[idx] : NOTES_SHARP[idx];
+        }
+
+        function transposeChord(chord, steps, targetKeyIdx) {
+            if (!chord) return "";
+            let suffix = ""; let rootStr = chord;
+            ["m7", "maj7", "7", "m", "dim"].forEach(s => {
+                if (chord.endsWith(s)) { suffix = s; rootStr = chord.replace(s, ""); }
+            });
+            let oldList = rootStr.includes("b") ? NOTES_FLAT : NOTES_SHARP;
+            let idx = oldList.indexOf(rootStr);
+            if (idx === -1) return chord;
+            
+            let newIdx = idx + steps;
+            let preferFlats = FLAT_KEYS.includes(targetKeyIdx);
+            return getNoteName(newIdx, preferFlats) + suffix;
+        }
+
+        function getChordKeysMap(chordName) {
+            let suffix = ""; let rootStr = chordName;
+            ["m7", "maj7", "7", "m", "dim"].forEach(s => {
+                if (chordName.endsWith(s)) { suffix = s; rootStr = chordName.replace(s, ""); }
+            });
+            let list = rootStr.includes("b") ? NOTES_FLAT : NOTES_SHARP;
+            let rIdx = list.indexOf(rootStr);
+            if(rIdx === -1) return [];
+            const intMap = {"": [0, 4, 7], "m": [0, 3, 7], "7": [0, 4, 7, 10], "m7": [0, 3, 7, 10], "maj7": [0, 4, 7, 11], "dim": [0, 3, 6]};
+            let intervals = intMap[suffix] || [0, 4, 7];
+            return intervals.map(i => (rIdx + i) % 12);
+        }
+
+        function applySettings() {
+            document.getElementById('settings-modal').style.display = 'none';
+            if (audioInput.files.length > 0) {
+                processAudioFile(audioInput.files[0]);
+            } else {
+                alert("קודם טען שיר כדי לנתח אותו עם ההגדרות החדשות.");
+            }
+        }
+
+        audioInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            processAudioFile(file);
+        });
+
+        async function processAudioFile(file) {
+            document.getElementById('song-title').innerText = file.name;
+            overlayText.innerText = "מנתח אודיו (לוקח כמה שניות)...";
+            overlay.style.display = 'flex';
+            
+            const formData = new FormData();
+            formData.append('audio', file);
+            
+            formData.append('hop', document.getElementById('set-hop').value);
+            formData.append('stay_prob', document.getElementById('set-stay').value);
+            formData.append('min_dur', document.getElementById('set-dur').value);
+            formData.append('complex_penalty', document.getElementById('set-comp').value);
+
+            try {
+                const response = await fetch('/analyze', { method: 'POST', body: formData });
+                currentData = await response.json();
+                
+                if(currentData && currentData.error) throw new Error(currentData.error);
+
+                originalKeyIdx = currentData.key_idx;
+                isMinor = currentData.is_minor;
+                
+                const localAudioUrl = URL.createObjectURL(file);
+                audioPlayer.src = localAudioUrl;
+                audioPlayer.load(); 
+                
+                document.getElementById('bpm-display').innerText = currentData.bpm;
+                
+                // תצוגת BPM מקורי
+                document.getElementById('orig-bpm-badge').innerText = "מקורי: " + currentData.bpm;
+                
+                const origKeyName = getNoteName(originalKeyIdx, FLAT_KEYS.includes(originalKeyIdx)) + (isMinor ? "m" : "");
+                document.getElementById('orig-key-badge').innerText = "מקורי: " + origKeyName;
+                
+                const keySelect = document.getElementById('key-select');
+                keySelect.innerHTML = '';
+                for(let i=0; i<12; i++) {
+                    let name = getNoteName(i, FLAT_KEYS.includes(i)) + (isMinor ? "m" : "");
+                    let diff = i - originalKeyIdx;
+                    if (diff > 6) diff -= 12;
+                    else if (diff < -5) diff += 12;
+                    let diffText = diff === 0 ? " (מקורי)" : (diff > 0 ? ` (+${diff})` : ` (${diff})`);
+                    let opt = document.createElement('option');
+                    opt.value = i;
+                    opt.innerText = name + diffText;
+                    if(i === originalKeyIdx) opt.selected = true;
+                    keySelect.appendChild(opt);
+                }
+
+                enableUI();
+                drawChords();
+                resetMetronome();
+                overlay.style.display = 'none';
+            } catch (err) {
+                alert("שגיאה בניתוח: " + err.message);
+                console.error(err);
+                overlay.style.display = 'none';
+            }
+        }
+
+        function enableUI() {
+            ['btn-play', 'btn-stop', 'btn-midi', 'btn-pdf', 'btn-edit', 'btn-loop-a', 'btn-loop-b', 'btn-loop-clear', 'bpm-slider', 'key-select', 'metronome-toggle'].forEach(id => {
+                document.getElementById(id).disabled = false;
+            });
+        }
+
+        function drawChords() {
+            chordsSheet.innerHTML = '';
+            chordElements = [];
+            if (!currentData || !Array.isArray(currentData.chords)) return; 
+
+            const targetKeyIdx = parseInt(document.getElementById('key-select').value);
+            const steps = targetKeyIdx - originalKeyIdx;
+
+            currentData.chords.forEach((item, index) => {
+                const block = document.createElement('div');
+                block.className = 'chord-block';
+                const transChord = transposeChord(item.chord, steps, targetKeyIdx);
+                
+                const proportionalWidth = Math.max(item.duration * 40, 80);
+                block.style.width = proportionalWidth + 'px';
+                block.style.flexGrow = item.duration;
+                
+                const min = Math.floor(item.start / 60);
+                const sec = Math.floor(item.start % 60).toString().padStart(2, '0');
+                
+                block.innerHTML = `<div class="chord-name">${transChord}</div><div class="chord-time">${min}:${sec}</div><div class="playhead-line"></div>`;
+                block.dataset.index = index;
+                block.dataset.chordName = transChord;
+                
+                if (!isEditing) {
+                    block.onclick = () => { audioPlayer.currentTime = item.start; };
+                    block.style.cursor = "pointer";
+                }
+                
+                chordsSheet.appendChild(block);
+                chordElements.push(block);
+            });
+        }
+
+        function toggleEdit() {
+            if(!currentData) return;
+            isEditing = !isEditing;
+            const btn = document.getElementById('btn-edit');
+            const targetKeyIdx = parseInt(document.getElementById('key-select').value);
+            const steps = targetKeyIdx - originalKeyIdx;
+
+            if (isEditing) {
+                btn.innerText = '💾 שמור תיקונים';
+                btn.classList.replace('primary', 'success');
+                document.getElementById('key-select').disabled = true;
+                
+                chordElements.forEach((el) => {
+                    let nameDiv = el.querySelector('.chord-name');
+                    let currentVal = nameDiv.innerText;
+                    nameDiv.innerHTML = `<input type="text" class="edit-input" value="${currentVal}">`;
+                    el.style.cursor = "default";
+                    el.onclick = null;
+                });
+            } else {
+                btn.innerText = '✏️ תקן אקורדים';
+                btn.classList.replace('success', 'primary');
+                document.getElementById('key-select').disabled = false;
+                
+                chordElements.forEach((el, idx) => {
+                    let input = el.querySelector('.edit-input');
+                    if(input) {
+                        let newVal = input.value.trim() || "-";
+                        let originalVal = transposeChord(newVal, -steps, originalKeyIdx);
+                        currentData.chords[idx].chord = originalVal;
+                    }
+                });
+                drawChords();
+            }
+        }
+
+        async function changeKey() {
+            const targetKeyIdx = parseInt(document.getElementById('key-select').value);
+            const steps = targetKeyIdx - originalKeyIdx;
+            
+            drawChords();
+
+            overlayText.innerText = "ממיר סולם...";
+            overlay.style.display = 'flex';
+            const wasPlaying = !audioPlayer.paused;
+            const currentTime = audioPlayer.currentTime;
+            
+            try {
+                const res = await fetch('/pitch_shift', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: currentData.filename, steps: steps })
+                });
+                
+                if (!res.ok) throw new Error("השרת נתקל בבעיה.");
+                
+                const audioBlob = await res.blob();
+                audioPlayer.src = URL.createObjectURL(audioBlob);
+                audioPlayer.load(); 
+                audioPlayer.currentTime = currentTime;
+                
+                if(wasPlaying) audioPlayer.play();
+                overlay.style.display = 'none';
+            } catch(e) {
+                alert("שגיאה: " + e.message);
+                overlay.style.display = 'none';
+            }
+        }
+
+        function togglePlay() {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+
+            if (audioPlayer.paused) {
+                audioPlayer.play().then(() => {
+                    document.getElementById('btn-play').innerText = '⏸ השהה';
+                    document.getElementById('btn-play').classList.replace('success', 'danger');
+                    isPlaying = true;
+                    updatePlayhead();
+                });
+            } else {
+                audioPlayer.pause();
+                document.getElementById('btn-play').innerText = '▶ נגן';
+                document.getElementById('btn-play').classList.replace('danger', 'success');
+                isPlaying = false;
+                cancelAnimationFrame(animationFrame);
+            }
+        }
+
+        function stopPlay() {
+            audioPlayer.pause();
+            audioPlayer.currentTime = loopStart !== null ? loopStart : 0;
+            document.getElementById('btn-play').innerText = '▶ נגן';
+            document.getElementById('btn-play').classList.replace('danger', 'success');
+            isPlaying = false;
+            cancelAnimationFrame(animationFrame);
+            resetMetronome();
+            
+            chordElements.forEach(el => {
+                el.classList.remove('active-chord');
+                let line = el.querySelector('.playhead-line');
+                if(line) line.style.width = '0%';
+            });
+            if(chordElements.length > 0) chordElements[0].scrollIntoView({behavior: "smooth", block: "start"});
+            updatePiano([]);
+        }
+
+        function changeTempo() {
+            const sliderVal = document.getElementById('bpm-slider').value;
+            audioPlayer.playbackRate = sliderVal;
+            document.getElementById('bpm-display').innerText = Math.round(currentData.bpm * sliderVal);
+        }
+
+        function setLoop(type) {
+            const t = audioPlayer.currentTime;
+            if(type === 'A') loopStart = t;
+            if(type === 'B') loopEnd = t;
+            if(type === 'clear') { loopStart = null; loopEnd = null; }
+            let txt = "";
+            if(loopStart !== null || loopEnd !== null) {
+                let sm = Math.floor((loopStart||0)/60), ss = Math.floor((loopStart||0)%60).toString().padStart(2,'0');
+                let em = loopEnd !== null ? Math.floor(loopEnd/60) : "--", es = loopEnd !== null ? Math.floor(loopEnd%60).toString().padStart(2,'0') : "--";
+                txt = `${sm}:${ss} - ${em}:${es}`;
+            }
+            document.getElementById('loop-display').innerText = txt;
+        }
+
+        function resetMetronome() {
+            lastMetronomeTickTime = -1;
+        }
+
+        let lastActiveIndex = -1;
+        function updatePlayhead() {
+            if (!isPlaying) return;
+            const time = audioPlayer.currentTime;
+            
+            if(loopEnd !== null && time >= loopEnd) {
+                audioPlayer.currentTime = loopStart !== null ? loopStart : 0;
+                resetMetronome();
+            }
+
+            
+            
+            // תיקון המטרונום המשתגע - השוואת אינדקסים בלבד
+            // תיקון המטרונום: תזמון מראש (Lookahead) למניעת גמגומים
+            if (document.getElementById('metronome-toggle').checked && currentData.beat_times) {
+                const lookahead = 0.1; // בודק 100 מילישניות קדימה
+                for (let i = 0; i < currentData.beat_times.length; i++) {
+                    let beatTime = currentData.beat_times[i];
+        
+                    // האם הפעימה הבאה נמצאת בחלון הזמן הקרוב?
+                    if (beatTime >= time && beatTime < time + lookahead) {
+                        if (lastMetronomeTickTime < i) {
+                // חישוב מתי בדיוק לנגן את הפעימה לפי הקצב הנוכחי
+                            let delay = (beatTime - time) / audioPlayer.playbackRate;
+                            playMetronomeTick(audioCtx.currentTime + delay);
+                            lastMetronomeTickTime = i;
+                        }
+                    }
+                }
+    
+    // איפוס במקרה של קפיצה אחורה או התחלה מחדש
+    if (time < 0.1 || (lastMetronomeTickTime >= 0 && time < currentData.beat_times[lastMetronomeTickTime] - 0.5)) {
+        lastMetronomeTickTime = -1;
+    }
+}
+
+            let currentIdx = currentData.chords.findIndex(c => time >= c.start && time < (c.start + c.duration));
+            
+            if (currentIdx !== -1) {
+                if (currentIdx !== lastActiveIndex) {
+                    if(lastActiveIndex !== -1 && chordElements[lastActiveIndex]) {
+                        chordElements[lastActiveIndex].classList.remove('active-chord');
+                        let oldLine = chordElements[lastActiveIndex].querySelector('.playhead-line');
+                        if(oldLine) oldLine.style.width = '0%';
+                    }
+                    chordElements[currentIdx].classList.add('active-chord');
+                    chordElements[currentIdx].scrollIntoView({behavior: "smooth", block: "center"});
+                    updatePiano(getChordKeysMap(chordElements[currentIdx].dataset.chordName));
+                    lastActiveIndex = currentIdx;
+                }
+                
+                let chord = currentData.chords[currentIdx];
+                let progress = (time - chord.start) / chord.duration;
+                let line = chordElements[currentIdx].querySelector('.playhead-line');
+                if(line) line.style.width = (progress * 100) + '%';
+            }
+
+            animationFrame = requestAnimationFrame(updatePlayhead);
+        }
+
+        function playMetronomeTick(startTime) {
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.value = 800; 
+    
+            gain.gain.setValueAtTime(0.5, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.05);
+            osc.start(startTime); 
+            osc.stop(startTime + 0.05);
+        }
+
+        function updatePiano(activeKeys) {
+            const keyElements = document.querySelectorAll('.key-white, .key-black');
+            keyElements.forEach(el => el.classList.remove('active'));
+            if (!activeKeys || activeKeys.length === 0) return;
+            activeKeys.forEach(noteIdx => {
+                if (keyElements[noteIdx]) keyElements[noteIdx].classList.add('active');
+                if (keyElements[noteIdx + 12]) keyElements[noteIdx + 12].classList.add('active');
+            });
+        }
+
+        // החזרת פונקציות הייצוא במלואן
+        async function exportMidi() {
+            if(!currentData) return;
+            const targetKeyIdx = parseInt(document.getElementById('key-select').value);
+            const steps = targetKeyIdx - originalKeyIdx;
+            
+            let exportPayload = { bpm: currentData.bpm, chords: [] };
+            currentData.chords.forEach(c => {
+                exportPayload.chords.push({
+                    start: c.start, duration: c.duration, chord: transposeChord(c.chord, steps, targetKeyIdx)
+                });
+            });
+
+            try {
+                const res = await fetch('/export_midi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(exportPayload) });
+                if (!res.ok) throw new Error("Mido לא מותקן בשרת - לא ניתן לייצא");
+                const blob = await res.blob();
+                const a = document.createElement('a');
+                a.href = window.URL.createObjectURL(blob); 
+                a.download = currentData.filename + '_chords.mid';
+                document.body.appendChild(a); a.click(); a.remove();
+            } catch(e) { alert(e.message); }
+        }
+
+        function exportPDF() {
+            if(!currentData) return;
+            const targetKeyIdx = parseInt(document.getElementById('key-select').value);
+            const steps = targetKeyIdx - originalKeyIdx;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write('<html dir="ltr"><head><title>דף אקורדים</title>');
+            printWindow.document.write('<style>body{font-family:sans-serif; text-align:center;} .title{font-size:30px; margin-bottom:20px; color:#1e293b;} .chords{display:flex;flex-wrap:wrap;justify-content:center;gap:15px;} .chord{border:2px solid #ccc;padding:15px; border-radius:10px; min-width:80px; font-size:24px;font-weight:bold;color:#000;}</style>');
+            printWindow.document.write('</head><body><div class="title">' + document.getElementById('song-title').innerText + '</div><div class="chords">');
+            
+            currentData.chords.forEach(c => {
+                let transChord = transposeChord(c.chord, steps, targetKeyIdx);
+                let pWidth = Math.max(c.duration * 30, 60);
+                printWindow.document.write('<div class="chord" style="width:'+pWidth+'px; flex-grow:'+c.duration+';">' + transChord + '</div>');
+            });
+            printWindow.document.write('</div></body></html>');
+            printWindow.document.close();
+            
+            setTimeout(() => { printWindow.print(); }, 500);
+        }
+    </script>
+</body>
+</html>
